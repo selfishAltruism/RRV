@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RRV | React Rendering Visualization tool",
+  title: "RRV | React Rendering Visualization Tool",
   description:
     "RRV는 React 컴포넌트의 렌더링 흐름을 시각화하여 useState, 전역 상태, JSX 구조를 한 눈에 파악할 수 있게 해주는 웹 도구임.",
   metadataBase: new URL("https://kyu-rrv.vercel.app"), // 실제 도메인으로 교체 필요.
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "RRV | React Rendering Visualization tool",
+    title: "RRV | React Rendering Visualization Tool",
     description:
       "React 렌더링 흐름과 JSX 구조를 SVG 그래프로 분석하는 시각화 도구 RRV.",
     url: "https://kyu-rrv.vercel.app",
