@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Download, Expand, Shrink } from "lucide-react";
 
 import { mapping } from "@/shared/libs/mapping/mapping";
 import { RenderGraphSvg } from "@/entities/RenderGraphSvg";
@@ -126,19 +127,20 @@ export default function Page() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={handleOpenFullscreen}
-                    disabled={!mappingResult}
-                    className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-sm text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    전체 화면
-                  </button>
-                  <button
-                    type="button"
                     onClick={handleDownloadSvg}
                     disabled={!mappingResult}
-                    className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-sm text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2 py-2 text-sm text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    SVG 다운로드
+                    <Download size={15} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenFullscreen}
+                    disabled={!mappingResult}
+                    className="rounded-md border border-neutral-300 bg-white px-2 py-2 text-sm text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Expand size={15} />
                   </button>
                 </div>
               </div>
@@ -177,16 +179,23 @@ export default function Page() {
 
       {/* 전체 화면 SVG 오버레이. */}
       {isFullscreen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute h-full w-full bg-black/70"
+            onClick={handleCloseFullscreen}
+          ></div>
           <div className="relative h-[90vh] w-[90vw] rounded-md bg-white p-3 shadow-lg">
+            <span className="absolute top-3 left-3 text-sm font-semibold">
+              Graph
+            </span>
             <button
               type="button"
               onClick={handleCloseFullscreen}
-              className="absolute top-2 right-4 rounded-md text-sm text-neutral-700"
+              className="absolute top-3 right-3 rounded-md text-sm text-neutral-700"
             >
-              x
+              <Shrink size={15} />
             </button>
-            <div className="mt-6 h-[calc(100%-2.5rem)] w-full overflow-auto rounded-md border border-neutral-200 bg-neutral-50 p-2">
+            <div className="mt-7 h-[calc(100%-30px)] w-full overflow-auto rounded-md border border-neutral-200 bg-neutral-50 p-2">
               <div className="h-full w-full">
                 <RenderGraphSvg
                   mappingResult={mappingResult}
