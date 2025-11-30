@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 
 import { buildGraphFromMappingResult } from "@/shared/libs/buildGraph/buildGraph";
+import { getEdgeStyle } from "@/shared/libs/ui/svg";
 
 interface RenderGraphSvgProps {
   mappingResult: Mapping.MappingResult | null;
@@ -16,9 +17,8 @@ type GraphEdge = GraphLayout["edges"][number];
 
 /**
  * JSX 노드들을
- * - depth(부모-자식 관계) 기준으로 가로 방향
- * - 같은 depth 내에서는 형제 순서대로 세로 방향
- * 으로 재배치
+ * - depth 기준으로 가로(오른쪽) 방향 확장
+ * - DFS 순서대로 전역 row를 증가시켜 부모/자식/형제가 위→아래로 자연스럽게 내려가도록 배치
  *
  * 전제:
  *   - JSX 노드: node.kind === "jsx"
@@ -52,81 +52,64 @@ function applyJsxTreeLayout(layout: GraphLayout): GraphLayout {
     return !parentId || !jsxNodeById.has(parentId);
   });
 
-  // depth / rowIndex 계산용 맵
-  const depthById = new Map<string, number>();
-  const rowIndexByDepth = new Map<number, number>();
+  // 레이아웃 파라미터
+  const baseX = colX.jsx; // depth 0 기준 x (JSX 컬럼)
+  const depthGapX = 160; // depth 증가 시 가로 이동량
 
-  // DFS로 순회하면서
-  // - depth 할당
-  // - depth별 y 인덱스를 증가시키며 rowIndex 지정
-  function dfs(node: GraphNode, depth: number) {
-    depthById.set(node.id, depth);
+  const baseY = 80; // 시작 Y
+  const rowGapY = 40; // row 간 세로 간격
 
-    const currentRow = rowIndexByDepth.get(depth) ?? 0;
-    rowIndexByDepth.set(depth, currentRow + 1);
-
-    // 이 노드의 자식 JSX 노드들
-    const children = jsxNodes.filter((child) => {
-      const parentId = parentIdMap.get(child.id);
-      return parentId === node.id;
-    });
-
-    for (const child of children) {
-      dfs(child, depth + 1);
-    }
-  }
-
-  // 루트들부터 DFS
-  for (const root of rootJsxNodes) {
-    dfs(root, 0);
-  }
-
-  // 최대 depth 계산
-  let maxDepth = 0;
-  for (const d of depthById.values()) {
-    if (d > maxDepth) maxDepth = d;
-  }
-
-  // X/Y 배치 파라미터
-  const baseX = colX.jsx; // JSX 컬럼 중심
-  const depthGapX = 160; // depth 간 가로 간격
-  const baseY = 80; // JSX 영역 시작 Y
-  const rowGapY = 40; // 행 간 세로 간격
-
-  // JSX 노드의 새 좌표 계산 (중심 기준 x/y)
   const newNodePositions = new Map<string, { x: number; y: number }>();
 
-  // depth / row 별 y 인덱스 재계산용 맵 초기화
-  const usedRowsPerDepth = new Map<number, number>();
+  const getChildren = (node: GraphNode): GraphNode[] =>
+    jsxNodes.filter((child) => parentIdMap.get(child.id) === node.id);
 
-  function assignPosition(node: GraphNode, depth: number) {
-    const used = usedRowsPerDepth.get(depth) ?? 0;
-    usedRowsPerDepth.set(depth, used + 1);
-
-    const x =
-      baseX -
-      (maxDepth * depthGapX) / 2 + // 전체 트리를 JSX 중앙 기준으로 좌우로 분산
-      depth * depthGapX;
-
-    const y = baseY + used * rowGapY;
+  /**
+   * 서브트리 레이아웃
+   * - node: 현재 노드
+   * - depth: JSX depth
+   * - rowStart: 이 서브트리가 시작되는 전역 row 인덱스
+   *
+   * 반환값: 이 서브트리가 사용한 row 개수
+   */
+  function layoutSubtree(
+    node: GraphNode,
+    depth: number,
+    rowStart: number,
+  ): number {
+    const x = baseX + depth * depthGapX; // 중앙 정렬 없이 오른쪽으로만 확장
+    const y = baseY + rowStart * rowGapY;
 
     newNodePositions.set(node.id, { x, y });
 
-    // 자식에 대해서도 재귀
-    const children = jsxNodes.filter((child) => {
-      const parentId = parentIdMap.get(child.id);
-      return parentId === node.id;
-    });
-
-    for (const child of children) {
-      assignPosition(child, depth + 1);
+    const children = getChildren(node);
+    if (children.length === 0) {
+      // 자기 자신 한 줄만 사용
+      return 1;
     }
+
+    // 1) 첫 번째 자식은 부모와 같은 row에 배치
+    const firstChild = children[0];
+    const firstHeight = layoutSubtree(firstChild, depth + 1, rowStart);
+
+    // 2) 두 번째 자식부터는 아래로 쌓기
+    let cursorRow = rowStart + firstHeight;
+
+    for (let i = 1; i < children.length; i += 1) {
+      const child = children[i];
+      const h = layoutSubtree(child, depth + 1, cursorRow);
+      cursorRow += h;
+    }
+
+    // 전체 서브트리가 사용한 row 수
+    return Math.max(1, cursorRow - rowStart);
   }
 
-  // 루트부터 다시 한 번 좌표 할당
-  usedRowsPerDepth.clear();
+  // 루트들부터 순서대로 서브트리 레이아웃
+  let currentRow = 0;
   for (const root of rootJsxNodes) {
-    assignPosition(root, 0);
+    const used = layoutSubtree(root, 0, currentRow);
+    currentRow += used; // 서브트리 바로 아래에 다음 루트 배치
   }
 
   // 노드 좌표 갱신
@@ -179,7 +162,7 @@ function applyJsxTreeLayout(layout: GraphLayout): GraphLayout {
     };
   });
 
-  // 높이/너비 보정 (JSX 트리가 기존 영역을 넘어갈 수 있으므로)
+  // 높이/너비 보정
   let maxY = height;
   for (const node of newNodes) {
     const bottom = node.y + node.height / 2 + 40;
@@ -220,43 +203,6 @@ function buildCurvePath(
   const c2y = y2 - offset;
 
   return `M ${x1} ${y1} C ${c1x} ${c1y} ${c2x} ${c2y} ${x2} ${y2}`;
-}
-
-/**
- * edge 종류별 스타일
- */
-function getEdgeStyle(kind: BuildGraph.GraphEdgeKind): {
-  stroke: string;
-  dashed?: boolean;
-  markerId: string;
-} {
-  switch (kind) {
-    case "flow":
-      return {
-        stroke: "#8b5cf6", // 보라 계열
-        dashed: true,
-        markerId: "arrow-solid",
-      };
-    case "state-dependency":
-      return {
-        stroke: "#9ca3af", // 회색
-        dashed: true,
-        markerId: "arrow-muted",
-      };
-    case "state-mutation":
-      return {
-        stroke: "#b91c1c", // 붉은 계열
-        dashed: false,
-        markerId: "arrow-accent",
-      };
-    case "external":
-    default:
-      return {
-        stroke: "#6b7280",
-        dashed: true,
-        markerId: "arrow-muted",
-      };
-  }
 }
 
 export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
