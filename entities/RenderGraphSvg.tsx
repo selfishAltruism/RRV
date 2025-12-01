@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 
 import { buildGraphFromMappingResult } from "@/shared/libs/buildGraph/buildGraph";
 import { getHorizontalAnchors } from "@/shared/libs/buildGraph/utils";
+import { getEdgeStyle } from "@/shared/libs/ui/svg";
 
 interface RenderGraphSvgProps {
   mappingResult: Mapping.MappingResult | null;
@@ -365,6 +366,7 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
         {/* edge (곡선) */}
         <g className="graph-edges">
           {edges.map((edge) => {
+            const style = getEdgeStyle(edge.kind);
             const fromNode = nodeMap[edge.from.nodeId];
             const toNode = nodeMap[edge.to.nodeId];
 
@@ -382,9 +384,10 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
                 y1={fromY}
                 x2={toX}
                 y2={toY}
-                stroke="#999"
+                stroke={style.stroke}
                 strokeWidth={1.2}
-                markerEnd="url(#arrow)"
+                strokeDasharray={style.dashed ? "3 2" : undefined}
+                markerEnd={`url(#${style.markerId})`}
               />
             );
           })}
