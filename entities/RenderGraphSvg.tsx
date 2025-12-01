@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 
 import { buildGraphFromMappingResult } from "@/shared/libs/buildGraph/buildGraph";
-import { getEdgeStyle } from "@/shared/libs/ui/svg";
+import { getHorizontalAnchors } from "@/shared/libs/buildGraph/utils";
 
 interface RenderGraphSvgProps {
   mappingResult: Mapping.MappingResult | null;
@@ -212,6 +212,16 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
     return applyJsxTreeLayout(base);
   }, [mappingResult]);
 
+  // RenderGraphSvg.tsx 상단부 (컴포넌트 내부)
+  const nodeMap = useMemo(
+    () =>
+      nodes.reduce<Record<string, GraphNode>>((acc, node) => {
+        acc[node.id] = node;
+        return acc;
+      }, {}),
+    [nodes],
+  );
+
   if (!mappingResult) {
     return <div className="text-sm text-neutral-500">코드 분석 결과 없음.</div>;
   }
@@ -288,46 +298,6 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
           </text>
         </g>
 
-        {/* edge (곡선) */}
-        <g>
-          {edges.map((edge) => {
-            const style = getEdgeStyle(edge.kind);
-            const d = buildCurvePath(
-              edge.from.x,
-              edge.from.y,
-              edge.to.x,
-              edge.to.y,
-            );
-
-            const midX = (edge.from.x + edge.to.x) / 2;
-            const midY = (edge.from.y + edge.to.y) / 2;
-
-            return (
-              <g key={edge.id}>
-                <path
-                  d={d}
-                  fill="none"
-                  stroke={style.stroke}
-                  strokeWidth={1}
-                  strokeDasharray={style.dashed ? "3 2" : undefined}
-                  markerEnd={`url(#${style.markerId})`}
-                />
-                {edge.label && (
-                  <text
-                    x={midX}
-                    y={midY - 4}
-                    fontSize={9}
-                    textAnchor="middle"
-                    fill={style.stroke}
-                  >
-                    {edge.label}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </g>
-
         {/* nodes */}
         <g>
           {nodes.map((node) => {
@@ -388,6 +358,34 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
                   {node.label}
                 </text>
               </g>
+            );
+          })}
+        </g>
+
+        {/* edge (곡선) */}
+        <g className="graph-edges">
+          {edges.map((edge) => {
+            const fromNode = nodeMap[edge.from.nodeId];
+            const toNode = nodeMap[edge.to.nodeId];
+
+            if (!fromNode || !toNode) return null;
+
+            const { fromX, fromY, toX, toY } = getHorizontalAnchors(
+              fromNode,
+              toNode,
+            );
+
+            return (
+              <line
+                key={edge.id}
+                x1={fromX}
+                y1={fromY}
+                x2={toX}
+                y2={toY}
+                stroke="#999"
+                strokeWidth={1.2}
+                markerEnd="url(#arrow)"
+              />
             );
           })}
         </g>

@@ -65,7 +65,7 @@ export default function Page() {
           <div className="flex items-baseline gap-2">
             <span className="text-lg font-semibold tracking-tight">crv.</span>
             <span className="text-sm text-neutral-500">
-              React Code-based Rendeing Visualization Tool
+              React Code-based Rendering Visualization Tool
             </span>
           </div>
         </div>
