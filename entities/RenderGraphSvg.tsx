@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 
 import { buildGraphFromMappingResult } from "@/shared/libs/buildGraph/buildGraph";
 import { getHorizontalAnchors } from "@/shared/libs/buildGraph/utils";
@@ -17,6 +17,7 @@ type GraphNode = GraphLayout["nodes"][number];
 type GraphEdge = GraphLayout["edges"][number];
 
 const STATE_FN_OFFSET_X = 70;
+const FOCUS_OFF_OPACITY = 0.23;
 
 type AnalyzedHook = Mapping.AnalyzedHook;
 
@@ -436,7 +437,7 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
   const stateColX = colX.state - STATE_FN_OFFSET_X;
   const fnColX = colX.state + STATE_FN_OFFSET_X;
 
-  // RenderGraphSvg.tsx 상단부 (컴포넌트 내부)
+  // nodeId → node 매핑
   const nodeMap = useMemo(
     () =>
       nodes.reduce<Record<string, GraphNode>>((acc, node) => {
@@ -445,6 +446,31 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
       }, {}),
     [nodes],
   );
+
+  // ① 현재 hover 중인 node id
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+
+  // ② hover된 node와 직접 연결된 node 집합 (hovered + 이웃)
+  const highlightedNodeIds = useMemo(() => {
+    if (!hoveredNodeId) return null;
+
+    const set = new Set<string>();
+    set.add(hoveredNodeId);
+
+    edges.forEach((edge) => {
+      const fromId = edge.from.nodeId;
+      const toId = edge.to.nodeId;
+
+      if (fromId === hoveredNodeId && typeof toId === "string") {
+        set.add(toId);
+      }
+      if (toId === hoveredNodeId && typeof fromId === "string") {
+        set.add(fromId);
+      }
+    });
+
+    return set;
+  }, [hoveredNodeId, edges]);
 
   if (!mappingResult) {
     return <div className="text-sm text-neutral-500">코드 분석 결과 없음.</div>;
@@ -580,8 +606,27 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
                 break;
             }
 
+            // hover 하이라이트/디밍 처리
+            let nodeOpacity = 1;
+            if (hoveredNodeId && highlightedNodeIds) {
+              if (!highlightedNodeIds.has(node.id)) {
+                nodeOpacity = FOCUS_OFF_OPACITY;
+              }
+            }
+
             return (
-              <g key={node.id}>
+              <g
+                key={node.id}
+                style={{
+                  cursor: "pointer",
+                  opacity: nodeOpacity,
+                  transition: "opacity 150ms ease-out",
+                }}
+                onMouseEnter={() => setHoveredNodeId(node.id)}
+                onMouseLeave={() =>
+                  setHoveredNodeId((prev) => (prev === node.id ? null : prev))
+                }
+              >
                 <rect
                   x={rectX}
                   y={rectY}
@@ -624,7 +669,6 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
             const toY = baseAnchors.toY;
 
             // 방향 판정은 노드 중심 기준
-            // const isLeftToRight = fromNode.x < toNode.x;
             const isRightToLeft = fromNode.x > toNode.x;
 
             // 우측 → 좌측인 경우, 노드 "안쪽" 테두리 기준으로 앵커 재조정
@@ -658,6 +702,17 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
 
             const d = `M ${fromX} ${fromY} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${toX} ${toY}`;
 
+            // edge 하이라이트/디밍 처리
+            let edgeOpacity = 1;
+            if (hoveredNodeId) {
+              const isConnectedToHovered =
+                edge.from.nodeId === hoveredNodeId ||
+                edge.to.nodeId === hoveredNodeId;
+              if (!isConnectedToHovered) {
+                edgeOpacity = 0.15;
+              }
+            }
+
             return (
               <path
                 key={edge.id}
@@ -667,6 +722,10 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
                 strokeWidth={1.2}
                 strokeDasharray={style.dashed ? "3 2" : undefined}
                 markerEnd={`url(#${style.markerId})`}
+                style={{
+                  opacity: edgeOpacity,
+                  transition: "opacity 150ms ease-out",
+                }}
               />
             );
           })}
