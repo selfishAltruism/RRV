@@ -6,6 +6,7 @@ import { Download, Expand, X } from "lucide-react";
 import { mapping } from "@/shared/libs/mapping/mapping";
 import { RenderGraphSvg } from "@/entities/RenderGraphSvg";
 import { SOURCE_INIT } from "@/shared/consts";
+import Link from "next/link";
 
 export default function Page() {
   const [source, setSource] = useState<string>(SOURCE_INIT);
@@ -59,18 +60,7 @@ export default function Page() {
   };
 
   return (
-    <main className="flex h-screen flex-col">
-      <header className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-4">
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-semibold tracking-tight">crv.</span>
-            <span className="text-sm text-neutral-500">
-              React Code-based Rendering Visualization Tool
-            </span>
-          </div>
-        </div>
-      </header>
-
+    <>
       {/* <section id="hero" className="border-b border-neutral-200 bg-neutral-50">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <div className="flex-1">
@@ -167,13 +157,19 @@ export default function Page() {
       <footer className="border-t border-neutral-200 bg-neutral-50">
         <div className="mx-auto flex h-14 max-w-6xl flex-col items-start justify-center px-4 text-xs text-neutral-500">
           <span>© 2025 crv. All rights reserved.</span>
-          <a
-            href="https://github.com/selfishAltruism"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Designed & Made by <strong>Kyu</strong>.
-          </a>
+          <div className="flex gap-1">
+            <a
+              href="https://github.com/selfishAltruism"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Designed & Made by <strong className="underline">Kyu</strong>
+            </a>
+            <span>|</span>
+            <Link href="/privacy" className="underline">
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </footer>
 
@@ -206,6 +202,6 @@ export default function Page() {
           </div>
         </div>
       )}
-    </main>
+    </>
   );
 }

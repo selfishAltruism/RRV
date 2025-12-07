@@ -1,11 +1,12 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "crv.",
   description:
-    "crv는 React 컴포넌트의 렌더링 흐름을 시각화하여 useState, 전역 상태, JSX 구조를 한 눈에 파악할 수 있게 해주는 웹 도구임.",
+    "crv는 React 컴포넌트의 렌더링 흐름을 시각화하여 useRef, useState, 전역 상태, JSX 구조 등을 한 눈에 파악할 수 있게 해주는 웹 도구입니다.",
   metadataBase: new URL("https://react-crv.vercel.app"),
   keywords: [
     "React",
@@ -57,7 +58,21 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ko">
       <body className="min-h-screen bg-neutral-100 text-neutral-900 antialiased">
-        {children}
+        <main className="flex h-screen flex-col">
+          <header className="border-b border-neutral-200 bg-white">
+            <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-4">
+              <Link href="/" className="flex items-baseline gap-2">
+                <span className="text-lg font-semibold tracking-tight">
+                  crv.
+                </span>
+                <span className="text-sm text-neutral-500">
+                  React Code-based Rendering Visualization Tool
+                </span>
+              </Link>
+            </div>
+          </header>
+          {children}
+        </main>
       </body>
     </html>
   );
