@@ -35,7 +35,9 @@ declare namespace Mapping {
     hookKind: "useEffect" | "useLayoutEffect";
     dependencies: EffectDependency[];
     setters: string[];
-    refs: string[];
+    // 변경: refs 대신 읽기/쓰기 분리
+    refReads: string[];
+    refWrites: string[];
     definedAt: {
       line: number;
       column: number;
@@ -57,8 +59,9 @@ declare namespace Mapping {
     id: string;
     component: string;
     depth: number;
-    parentId: string | null; // 추가: 부모 JSX 노드 id (루트면 null)
+    parentId: string | null; // 부모 JSX 노드 id (루트면 null)
     props: string[];
+    refProps: string[]; // ref attribute로 연결된 ref 변수명들
     definedAt: {
       line: number;
       column: number;

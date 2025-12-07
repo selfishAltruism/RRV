@@ -473,7 +473,7 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
             orient="auto"
             markerUnits="strokeWidth"
           >
-            <path d="M0,0 L8,4 L0,8 z" fill="#8b5cf6" />
+            <path d="M0,0 L8,4 L0,8 z" fill="#0e8a05" />
           </marker>
 
           {/* muted 화살표 */}
@@ -486,7 +486,7 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
             orient="auto"
             markerUnits="strokeWidth"
           >
-            <path d="M0,0 L8,4 L0,8 z" fill="#9ca3af" />
+            <path d="M0,0 L8,4 L0,8 z" fill="#EC4115" />
           </marker>
 
           {/* 상태 변경 강조 화살표 */}
@@ -499,7 +499,7 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
             orient="auto"
             markerUnits="strokeWidth"
           >
-            <path d="M0,0 L8,4 L0,8 z" fill="#b91c1c" />
+            <path d="M0,0 L8,4 L0,8 z" fill="#8b5cf6" />
           </marker>
 
           <marker
@@ -554,7 +554,8 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
 
             switch (node.kind) {
               case "independent":
-                stroke = "#6b7280";
+                stroke = "#EC4115";
+                fill = "#ffe7e0";
                 break;
               case "state":
                 stroke = "#2563eb";
@@ -569,12 +570,12 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
                 fill = "#ecfdf5";
                 break;
               case "external":
-                stroke = "#9ca3af";
+                stroke = "#EC4115";
                 fill = "#f9fafb";
                 break;
               case "variable":
               default:
-                stroke = "#9ca3af";
+                stroke = "#EC4115";
                 fill = "#ffffff";
                 break;
             }

@@ -133,14 +133,16 @@ export function buildGraphFromMappingResult(
     label: string;
     depth: number;
     props: string[];
+    refProps: string[];
     parentId?: string | null;
   };
 
   const jsxLayoutItems: JsxLayoutItem[] = mappingResult.jsxNodes.map((jsx) => ({
-    id: jsx.id, // 논리 JSX id (예: "jsx-1" 또는 "1")
+    id: jsx.id, // 논리 JSX id
     label: jsx.component,
     depth: jsx.depth,
     props: jsx.props,
+    refProps: jsx.refProps ?? [],
     parentId: jsx.parentId ?? null,
   }));
 
@@ -169,11 +171,8 @@ export function buildGraphFromMappingResult(
         const x = jsxBaseX + depth * depthGapX;
         const y = jsxBaseY + depth * depthGapY + index * intraGapY;
 
-        const logicalId = item.id;
-        const graphId = `jsx-${logicalId}`;
-
         const node: BuildGraph.GraphNode = {
-          id: graphId, // 전체 그래프에서의 node id
+          id: `jsx-${item.id}`,
           label: item.label,
           kind: "jsx",
           x,
@@ -183,7 +182,7 @@ export function buildGraphFromMappingResult(
           meta: {
             depth: item.depth,
             props: item.props,
-            // applyJsxTreeLayout 이 기대하는 필드: 그래프 노드 기준 부모 id
+            refProps: item.refProps, // ★ 추가
             jsxParentId: item.parentId ? `jsx-${item.parentId}` : undefined,
           } as Record<string, unknown>,
         };
@@ -224,16 +223,12 @@ export function buildGraphFromMappingResult(
     });
   }
 
-  // independent → state
-  if (independentNodes.length > 0 && stateNodes.length > 0) {
-    connectSequential(independentNodes, stateNodes);
-  }
-
-  // state → effect (의존성)
+  // state / ref → effect (의존성)
   mappingResult.effects.forEach((effect) => {
     const effectNode = effectNodes.find((n) => n.id === `effect-${effect.id}`);
     if (!effectNode) return;
 
+    // 1) state → effect (기존 로직 그대로 유지)
     effect.dependencies.forEach((dep) => {
       const stateNode = stateNodes.find((n) => n.label.startsWith(dep.name));
       if (!stateNode) return;
@@ -255,7 +250,30 @@ export function buildGraphFromMappingResult(
       });
     });
 
-    // effect → state (setState)
+    // 2) ref → effect (ref 읽기 의존성)
+    const refReads = effect.refReads as string[] | undefined;
+    refReads?.forEach((refName) => {
+      const refNode = independentNodes.find((n) => n.label === refName);
+      if (!refNode) return;
+
+      edges.push({
+        id: `dep-ref-${refNode.id}-${effectNode.id}-${refName}`,
+        from: {
+          nodeId: refNode.id,
+          x: refNode.x + refNode.width / 2,
+          y: refNode.y,
+        },
+        to: {
+          nodeId: effectNode.id,
+          x: effectNode.x - effectNode.width / 2,
+          y: effectNode.y,
+        },
+        kind: "state-dependency",
+        label: refName,
+      });
+    });
+
+    // 3) effect → state (setState, 기존 로직)
     effect.setters.forEach((setter) => {
       const match = setter.match(/^set([A-Z].*)/);
       const stateName = match
@@ -279,6 +297,29 @@ export function buildGraphFromMappingResult(
         },
         kind: "state-mutation",
         label: setter,
+      });
+    });
+
+    // 4) effect → ref (ref.current 쓰기)
+    const refWrites = effect.refWrites as string[] | undefined;
+    refWrites?.forEach((refName) => {
+      const refNode = independentNodes.find((n) => n.label === refName);
+      if (!refNode) return;
+
+      edges.push({
+        id: `mut-ref-${effectNode.id}-${refNode.id}-${refName}`,
+        from: {
+          nodeId: effectNode.id,
+          x: effectNode.x + effectNode.width / 2,
+          y: effectNode.y,
+        },
+        to: {
+          nodeId: refNode.id,
+          x: refNode.x - refNode.width / 2,
+          y: refNode.y,
+        },
+        kind: "state-mutation",
+        label: refName,
       });
     });
   });
@@ -315,33 +356,77 @@ export function buildGraphFromMappingResult(
     });
   });
 
-  // state / ref → JSX prop
+  // state / ref ↔ JSX prop (ref attribute 방향 포함)
   jsxNodes.forEach((jsxNode) => {
     const jsxMeta = jsxNode.meta ?? {};
     const props = (jsxMeta.props as string[]) ?? [];
+    const refProps = (jsxMeta.refProps as string[]) ?? [];
 
     props.forEach((name) => {
-      const fromStateNode =
-        stateNodes.find((n) => n.label.startsWith(name)) ??
-        independentNodes.find((n) => n.label === name);
+      const refNode = independentNodes.find((n) => n.label === name);
+      const stateNode = stateNodes.find((n) => n.label.startsWith(name));
+      const isRefAttr = refProps.includes(name);
 
-      if (!fromStateNode) return;
+      // 1) JSX element에서 ref attribute로 ref를 연결한 경우
+      //    div -> wrapperRef (JSX → ref, mutation 성격)
+      if (refNode && isRefAttr) {
+        edges.push({
+          id: `jsx-ref-attr-${jsxNode.id}-${refNode.id}-${name}`,
+          from: {
+            nodeId: jsxNode.id,
+            x: jsxNode.x + jsxNode.width / 2,
+            y: jsxNode.y,
+          },
+          to: {
+            nodeId: refNode.id,
+            x: refNode.x - refNode.width / 2,
+            y: refNode.y,
+          },
+          kind: "state-mutation",
+          label: name,
+        });
+        return;
+      }
 
-      edges.push({
-        id: `jsx-prop-${fromStateNode.id}-${jsxNode.id}-${name}`,
-        from: {
-          nodeId: fromStateNode.id,
-          x: fromStateNode.x + fromStateNode.width / 2,
-          y: fromStateNode.y,
-        },
-        to: {
-          nodeId: jsxNode.id,
-          x: jsxNode.x - jsxNode.width / 2,
-          y: jsxNode.y,
-        },
-        kind: "state-dependency",
-        label: name,
-      });
+      // 2) JSX element에서 ref attribute를 제외한 prop으로 ref를 받는 경우
+      //    wrapperRef -> MapFloorContextMenu (ref → JSX, dependency)
+      if (refNode && !isRefAttr) {
+        edges.push({
+          id: `jsx-ref-prop-${refNode.id}-${jsxNode.id}-${name}`,
+          from: {
+            nodeId: refNode.id,
+            x: refNode.x + refNode.width / 2,
+            y: refNode.y,
+          },
+          to: {
+            nodeId: jsxNode.id,
+            x: jsxNode.x - jsxNode.width / 2,
+            y: jsxNode.y,
+          },
+          kind: "state-dependency",
+          label: name,
+        });
+        return;
+      }
+
+      // 3) 일반 state / 변수 → JSX prop (기존 로직)
+      if (stateNode) {
+        edges.push({
+          id: `jsx-prop-${stateNode.id}-${jsxNode.id}-${name}`,
+          from: {
+            nodeId: stateNode.id,
+            x: stateNode.x + stateNode.width / 2,
+            y: stateNode.y,
+          },
+          to: {
+            nodeId: jsxNode.id,
+            x: jsxNode.x - jsxNode.width / 2,
+            y: jsxNode.y,
+          },
+          kind: "state-dependency",
+          label: name,
+        });
+      }
     });
   });
 

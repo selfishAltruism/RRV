@@ -176,12 +176,14 @@ function analyzeEffectCall(
 
   const dependencies: Mapping.EffectDependency[] = [];
   const setters: string[] = [];
-  const refs: string[] = [];
+  const refReads: string[] = [];
+  const refWrites: string[] = [];
 
   const args = path.get("arguments") as NodePath<t.Expression>[];
   const cbArgPath = args[0];
   const depsArgPath = args[1];
 
+  // deps 배열 추출
   if (depsArgPath && depsArgPath.isArrayExpression()) {
     depsArgPath.node.elements.forEach((el) => {
       if (t.isIdentifier(el)) {
@@ -193,6 +195,7 @@ function analyzeEffectCall(
     });
   }
 
+  // effect callback 내부 분석
   if (
     cbArgPath &&
     (cbArgPath.isArrowFunctionExpression() || cbArgPath.isFunctionExpression())
@@ -207,6 +210,7 @@ function analyzeEffectCall(
       (bodyPathNode.isBlockStatement() || bodyPathNode.isExpression())
     ) {
       bodyPathNode.traverse({
+        // setXxx, queryClient.mutate 등 setter 수집
         CallExpression(innerPath: NodePath<t.CallExpression>) {
           const innerCallee = innerPath.node.callee;
 
@@ -229,10 +233,23 @@ function analyzeEffectCall(
             }
           }
         },
+
+        // ref 읽기 / 쓰기 구분
         MemberExpression(innerPath: NodePath<t.MemberExpression>) {
           const obj = innerPath.node.object;
-          if (t.isIdentifier(obj) && obj.name.endsWith("Ref")) {
-            refs.push(obj.name);
+          if (!t.isIdentifier(obj) || !obj.name.endsWith("Ref")) return;
+
+          const parent = innerPath.parentPath?.node;
+
+          // ref.current = ... 형태: 쓰기
+          if (
+            t.isAssignmentExpression(parent) &&
+            parent.left === innerPath.node
+          ) {
+            refWrites.push(obj.name);
+          } else {
+            // 그 외: 읽기 (조건, 대입, 함수 인자 등)
+            refReads.push(obj.name);
           }
         },
       });
@@ -244,7 +261,8 @@ function analyzeEffectCall(
     hookKind,
     dependencies,
     setters: Array.from(new Set(setters)),
-    refs: Array.from(new Set(refs)),
+    refReads: Array.from(new Set(refReads)),
+    refWrites: Array.from(new Set(refWrites)),
     definedAt: loc ? { line: loc.start.line, column: loc.start.column } : null,
   };
 }
@@ -364,17 +382,40 @@ function analyzeJsxTree(
         const opening = path.node.openingElement;
         const loc = opening.loc;
 
-        // props 안에서 Identifier로 참조되는 값 추출 (기존 로직 재사용)
+        // props 안에서 Identifier / MemberExpression(wrapperRef.current) 추출 + ref attribute 구분
         const propIdentifiers: string[] = [];
+        const refAttrIdentifiers: string[] = [];
+
         opening.attributes.forEach(
           (attr: t.JSXAttribute | t.JSXSpreadAttribute) => {
             if (!t.isJSXAttribute(attr)) return;
+            if (!t.isJSXIdentifier(attr.name)) return;
+
+            const attrName = attr.name.name;
             const value = attr.value;
-            if (
-              t.isJSXExpressionContainer(value) &&
-              t.isIdentifier(value.expression)
+            if (!t.isJSXExpressionContainer(value)) return;
+
+            const expr = value.expression;
+            let baseName: string | null = null;
+
+            if (t.isIdentifier(expr)) {
+              // 예: ref={wrapperRef}, wrapperElement={wrapperRef}
+              baseName = expr.name;
+            } else if (
+              t.isMemberExpression(expr) &&
+              t.isIdentifier(expr.object)
             ) {
-              propIdentifiers.push(value.expression.name);
+              // 예: wrapperElement={wrapperRef.current}
+              baseName = expr.object.name;
+            }
+
+            if (!baseName) return;
+
+            propIdentifiers.push(baseName);
+
+            // ref attribute 인 경우만 별도 리스트에 기록
+            if (attrName === "ref") {
+              refAttrIdentifiers.push(baseName);
             }
           },
         );
@@ -393,6 +434,7 @@ function analyzeJsxTree(
           depth,
           parentId,
           props: Array.from(new Set(propIdentifiers)),
+          refProps: Array.from(new Set(refAttrIdentifiers)),
           definedAt: loc
             ? { line: loc.start.line, column: loc.start.column }
             : null,
