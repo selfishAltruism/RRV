@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 
 import { buildGraphFromMappingResult } from "@/shared/libs/buildGraph/buildGraph";
-import { getHorizontalAnchors } from "@/shared/libs/buildGraph/utils";
+import {
+  ellipsizeLabel,
+  getHorizontalAnchors,
+} from "@/shared/libs/buildGraph/utils";
 import { getEdgeStyle } from "@/shared/libs/ui/svg";
 
 interface RenderGraphSvgProps {
@@ -426,6 +429,17 @@ function applyJsxTreeLayout(layout: GraphLayout): GraphLayout {
 }
 
 export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
+  // 드래그 스크롤용 컨테이너 ref 및 상태
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const draggingRef = useRef(false);
+  const dragStateRef = useRef<{
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    scrollTop: number;
+  } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
   const { nodes, edges, width, height, colX } = useMemo(() => {
     const base = buildGraphFromMappingResult(mappingResult);
     // 1단계: 상태 / 함수 컬럼 레이아웃
@@ -472,6 +486,70 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
     return set;
   }, [hoveredNodeId, edges]);
 
+  // 드래그 스크롤 핸들러들
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>): void => {
+    // 왼쪽 버튼만 처리
+    if (e.button !== 0) return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    draggingRef.current = true;
+    setIsDragging(true);
+
+    dragStateRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      scrollLeft: container.scrollLeft,
+      scrollTop: container.scrollTop,
+    };
+
+    // pointer capture로 영역 밖 이동 시에도 move 이벤트 계속 받기
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    e.preventDefault();
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>): void => {
+    if (!draggingRef.current) return;
+
+    const container = scrollContainerRef.current;
+    const dragState = dragStateRef.current;
+    if (!container || !dragState) return;
+
+    const dx = e.clientX - dragState.startX;
+    const dy = e.clientY - dragState.startY;
+
+    container.scrollLeft = dragState.scrollLeft - dx;
+    container.scrollTop = dragState.scrollTop - dy;
+  };
+
+  const stopDragging = (e?: React.PointerEvent<HTMLDivElement>): void => {
+    if (!draggingRef.current) return;
+
+    draggingRef.current = false;
+    setIsDragging(false);
+    dragStateRef.current = null;
+
+    if (e) {
+      try {
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        // 이미 해제된 경우 등은 무시
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>): void => {
+    stopDragging(e);
+  };
+
+  const handlePointerLeave = (e: React.PointerEvent<HTMLDivElement>): void => {
+    // pointer capture 상태에서는 leave가 자주 발생하므로,
+    // 단순히 leave만으로는 드래그를 끊지 않고, 버튼 업에서 종료
+    if (!draggingRef.current) return;
+    // 필요 시 여기서도 stopDragging(e); 호출 가능
+  };
+
   if (!mappingResult) {
     return <div className="text-sm text-neutral-500">코드 분석 결과 없음.</div>;
   }
@@ -485,7 +563,15 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
   }
 
   return (
-    <div className="h-full w-full overflow-auto rounded-md border bg-white">
+    <div
+      ref={scrollContainerRef}
+      className="h-full w-full overflow-auto border bg-white"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerLeave}
+      style={{ cursor: isDragging ? "grabbing" : "grab" }}
+    >
       <svg ref={svgRef} width={width} height={height} className="block">
         {/* defs: arrow marker 정의 */}
         <defs>
@@ -614,6 +700,12 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
               }
             }
 
+            const visibleLabel = ellipsizeLabel(
+              node.label,
+              node.width - 12,
+              11,
+            );
+
             return (
               <g
                 key={node.id}
@@ -645,7 +737,7 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
                   textAnchor="middle"
                   fill="#111827"
                 >
-                  {node.label}
+                  {visibleLabel}
                 </text>
               </g>
             );
@@ -690,15 +782,9 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
             let c1y = fromY;
             let c2y = toY;
 
-            /* if (isLeftToRight || isRightToLeft) { */
             // 좌 → 우 : 위쪽으로 둥글게
             c1y = fromY - curveOffset;
             c2y = toY - curveOffset;
-            /* } else if (isRightToLeft) {
-              // 우 → 좌 : 아래쪽으로 둥글게
-              c1y = fromY + curveOffset;
-              c2y = toY + curveOffset;
-            } */
 
             const d = `M ${fromX} ${fromY} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${toX} ${toY}`;
 

@@ -62,10 +62,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
           <header className="border-b border-neutral-200 bg-white">
             <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-4">
               <Link href="/" className="flex items-baseline gap-2">
-                <span className="text-lg font-semibold tracking-tight">
+                <span className="text-[20px] font-semibold tracking-tight">
                   crv.
                 </span>
-                <span className="text-sm text-neutral-500">
+                <span className="text-[15px] text-neutral-500">
                   React Code-based Rendering Visualization Tool
                 </span>
               </Link>

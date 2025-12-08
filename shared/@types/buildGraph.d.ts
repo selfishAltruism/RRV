@@ -49,4 +49,9 @@ declare namespace BuildGraph {
       number
     >;
   }
+
+  export type MutationAction = {
+    target: string;
+    via: "setState" | "ref";
+  };
 }

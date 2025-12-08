@@ -1,15 +1,49 @@
 import traverse, { NodePath } from "@babel/traverse";
 import * as t from "@babel/types";
 
-type MutationAction = {
-  target: string;
-  via: "setState" | "ref";
-};
+export function ellipsizeLabel(
+  text: string,
+  maxWidth: number,
+  fontSize = 11,
+  fontFamily = "sans-serif",
+): string {
+  const svgNS = "http://www.w3.org/2000/svg";
+
+  // 숨겨진 SVG 텍스트 요소 생성
+  const svg = document.createElementNS(svgNS, "svg");
+  const txt = document.createElementNS(svgNS, "text");
+  txt.setAttribute("font-size", String(fontSize));
+  txt.setAttribute("font-family", fontFamily);
+  txt.textContent = text;
+
+  svg.appendChild(txt);
+  document.body.appendChild(svg);
+
+  const fullWidth = txt.getComputedTextLength();
+  document.body.removeChild(svg);
+
+  // 전체 텍스트가 박스 안에 들어오면 그대로 반환
+  if (fullWidth <= maxWidth) return text;
+
+  // 아니면 줄여서 ... 처리
+  let truncated = text;
+  while (truncated.length > 0) {
+    truncated = truncated.slice(0, -1);
+    txt.textContent = truncated + "...";
+    document.body.appendChild(svg);
+    const w = txt.getComputedTextLength();
+    document.body.removeChild(svg);
+
+    if (w <= maxWidth) return truncated + "...";
+  }
+
+  return "...";
+}
 
 export function detectMutationActions(
   astNode: t.Node | null | undefined,
-): MutationAction[] {
-  const mutations: MutationAction[] = [];
+): BuildGraph.MutationAction[] {
+  const mutations: BuildGraph.MutationAction[] = [];
   if (!astNode) return mutations;
 
   traverse(astNode, {

@@ -61,20 +61,6 @@ export default function Page() {
 
   return (
     <>
-      {/* <section id="hero" className="border-b border-neutral-200 bg-neutral-50">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-          <div className="flex-1">
-            <h1 className="text-lg font-bold md:text-xl">
-              React 렌더링 흐름 SVG 시각화.
-            </h1>
-            <p className="text-sm text-neutral-700">
-              코드 한 파일 기준으로 렌더링 결정 요소와 JSX 구조를 즉시 확인하는
-              용도임.
-            </p>
-          </div>
-        </div>
-      </section> */}
-
       <section id="playground" className="flex flex-1 py-2">
         <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-4">
           <div className="grid h-full flex-1 gap-4 md:grid-cols-2">
@@ -83,17 +69,14 @@ export default function Page() {
               aria-label="React 코드 입력 영역."
               className="flex h-full min-h-[0] flex-col"
             >
-              <div className="mb-2 flex h-8 items-center justify-between">
-                <label
-                  htmlFor="code-input"
-                  className="text-sm font-bold text-neutral-700"
-                >
+              <div className="mt-1 mb-1 flex h-8 items-center justify-between">
+                <label htmlFor="code-input" className="text-[15px] font-bold">
                   Component Source Code
                 </label>
               </div>
               <textarea
                 id="code-input"
-                className="min-h-0 flex-1 rounded-md border border-neutral-300 bg-white p-3 font-mono text-sm leading-relaxed text-neutral-800 shadow-sm outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-400"
+                className="min-h-0 flex-1 border border-neutral-300 bg-white p-3 font-mono text-sm leading-relaxed text-neutral-800 shadow-sm outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-400"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
                 spellCheck={false}
@@ -101,7 +84,7 @@ export default function Page() {
               <button
                 type="button"
                 onClick={handleAnalyze}
-                className="mt-3 self-end rounded-md bg-neutral-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-neutral-800"
+                className="mt-3 self-end rounded-sm bg-green-700 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-800"
               >
                 분석 실행
               </button>
@@ -112,14 +95,14 @@ export default function Page() {
               aria-label="React 렌더링 SVG 시각화 영역."
               className="flex h-full min-h-[0] flex-col"
             >
-              <div className="mb-2 flex h-8 items-center justify-between gap-2">
-                <span className="text-sm font-semibold">Graph</span>
-                <div className="flex gap-2">
+              <div className="mt-1 mb-1 flex h-8 items-center justify-between gap-2">
+                <span className="text-[15px] font-semibold">Graph</span>
+                <div className="-mt-1 flex gap-1">
                   <button
                     type="button"
                     onClick={handleDownloadSvg}
                     disabled={!mappingResult}
-                    className="flex items-center gap-1 rounded-md border border-neutral-300 bg-white px-2 py-2 text-sm text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex items-center gap-1 rounded-sm border border-green-700 bg-green-700 px-2 py-2 text-sm text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Download size={15} />
                   </button>
@@ -128,13 +111,13 @@ export default function Page() {
                     type="button"
                     onClick={handleOpenFullscreen}
                     disabled={!mappingResult}
-                    className="rounded-md border border-neutral-300 bg-white px-2 py-2 text-sm text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-sm border border-green-700 bg-green-700 px-2 py-2 text-sm text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Expand size={15} />
                   </button>
                 </div>
               </div>
-              <div className="min-h-0 flex-1 overflow-auto rounded-md border border-neutral-200 bg-neutral-50 p-2">
+              <div className="min-h-0 flex-1 overflow-auto border border-neutral-200 bg-neutral-50 p-2">
                 {mappingResult && mappingResult.errors.length > 0 && (
                   <div className="mb-2 rounded-md border border-red-300 bg-red-50 px-2 py-1 text-sm text-red-700">
                     {mappingResult.errors.map((err, idx) => (
@@ -180,18 +163,16 @@ export default function Page() {
             className="absolute h-full w-full bg-black/70"
             onClick={handleCloseFullscreen}
           ></div>
-          <div className="relative h-[90vh] w-[90vw] rounded-md bg-white p-3 shadow-lg">
-            <span className="absolute top-3 left-3 text-sm font-semibold">
-              Graph
-            </span>
+          <div className="relative h-[90vh] w-[90vw] rounded-sm bg-white p-3 shadow-lg">
+            <span className="absolute text-[15px] font-semibold">Graph</span>
             <button
               type="button"
               onClick={handleCloseFullscreen}
-              className="absolute top-3 right-3 rounded-md text-sm text-neutral-700"
+              className="absolute top-3 right-3 rounded-sm text-sm text-neutral-700"
             >
-              <X size={15} />
+              <X size={18} />
             </button>
-            <div className="mt-7 h-[calc(100%-30px)] w-full overflow-auto rounded-md border border-neutral-200 bg-neutral-50 p-2">
+            <div className="mt-7 h-[calc(100%-30px)] w-full overflow-auto rounded-sm border border-neutral-200 bg-neutral-50 p-2">
               <div className="h-full w-full">
                 <RenderGraphSvg
                   mappingResult={mappingResult}
