@@ -551,13 +551,15 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
   };
 
   if (!mappingResult) {
-    return <div className="text-sm text-neutral-500">코드 분석 결과 없음.</div>;
+    return (
+      <div className="text-sm text-neutral-500">No code analysis results.</div>
+    );
   }
 
   if (!nodes.length) {
     return (
       <div className="text-sm text-neutral-500">
-        분석 가능한 노드가 없습니다.
+        There are no analyzable nodes.
       </div>
     );
   }
@@ -630,16 +632,16 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
         {/* 컬럼 타이틀 */}
         <g fontSize={11} fill="#4b5563">
           <text x={colX.independent} y={32} textAnchor="middle">
-            렌더링 독립
+            Rendering Independent
           </text>
           <text x={colX.state} y={32} textAnchor="middle">
-            렌더링 결정 / 상태
+            Rendering Decision
           </text>
           <text x={colX.variable} y={32} textAnchor="middle">
-            변수 / 헬퍼
+            General Variables
           </text>
           <text x={colX.effect} y={32} textAnchor="middle">
-            렌더링 후속
+            Rendering Follow-up.
           </text>
           <text x={colX.jsx} y={32} textAnchor="middle">
             JSX
@@ -647,10 +649,10 @@ export function RenderGraphSvg({ mappingResult, svgRef }: RenderGraphSvgProps) {
 
           {/* 상태 / 함수 서브 컬럼 */}
           <text x={stateColX} y={48} textAnchor="middle" fontSize={10}>
-            state
+            State
           </text>
           <text x={fnColX} y={48} textAnchor="middle" fontSize={10}>
-            함수
+            Set Method
           </text>
         </g>
 

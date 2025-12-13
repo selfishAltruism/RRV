@@ -64,9 +64,9 @@ export default function Page() {
       <section id="playground" className="flex flex-1 py-2">
         <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-4">
           <div className="grid h-full flex-1 gap-4 md:grid-cols-2">
-            {/* 코드 입력 영역. */}
+            {/* Code input area */}
             <section
-              aria-label="React 코드 입력 영역."
+              aria-label="React code input area."
               className="flex h-full min-h-[0] flex-col"
             >
               <div className="mt-1 mb-1 flex h-8 items-center justify-between">
@@ -86,13 +86,13 @@ export default function Page() {
                 onClick={handleAnalyze}
                 className="mt-3 self-end rounded-sm bg-green-700 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-800"
               >
-                분석 실행
+                Build Graph!
               </button>
             </section>
 
-            {/* SVG 시각화 영역. */}
+            {/* SVG visualization area */}
             <section
-              aria-label="React 렌더링 SVG 시각화 영역."
+              aria-label="React rendering SVG visualization area."
               className="flex h-full min-h-[0] flex-col"
             >
               <div className="mt-1 mb-1 flex h-8 items-center justify-between gap-2">
@@ -102,6 +102,8 @@ export default function Page() {
                     type="button"
                     onClick={handleDownloadSvg}
                     disabled={!mappingResult}
+                    aria-label="Download graph as SVG"
+                    title="Download SVG"
                     className="flex items-center gap-1 rounded-sm border border-green-700 bg-green-700 px-2 py-2 text-sm text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Download size={15} />
@@ -111,15 +113,22 @@ export default function Page() {
                     type="button"
                     onClick={handleOpenFullscreen}
                     disabled={!mappingResult}
+                    aria-label="Open fullscreen graph"
+                    title="Fullscreen"
                     className="rounded-sm border border-green-700 bg-green-700 px-2 py-2 text-sm text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Expand size={15} />
                   </button>
                 </div>
               </div>
+
               <div className="min-h-0 flex-1 overflow-auto border border-neutral-200 bg-neutral-50 p-2">
                 {mappingResult && mappingResult.errors.length > 0 && (
-                  <div className="mb-2 rounded-md border border-red-300 bg-red-50 px-2 py-1 text-sm text-red-700">
+                  <div
+                    className="mb-2 rounded-md border border-red-300 bg-red-50 px-2 py-1 text-sm text-red-700"
+                    role="alert"
+                    aria-label="Analysis errors"
+                  >
                     {mappingResult.errors.map((err, idx) => (
                       <div key={idx}>{err}</div>
                     ))}
@@ -146,7 +155,7 @@ export default function Page() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Designed & Made by <strong className="underline">Kyu</strong>
+              Designed &amp; Made by <strong className="underline">Kyu</strong>
             </a>
             <span>|</span>
             <Link href="/privacy" className="underline">
@@ -156,22 +165,29 @@ export default function Page() {
         </div>
       </footer>
 
-      {/* 전체 화면 SVG 오버레이. */}
+      {/* Fullscreen SVG overlay */}
       {isFullscreen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="absolute h-full w-full bg-black/70"
             onClick={handleCloseFullscreen}
+            aria-label="Close fullscreen overlay"
+            role="button"
+            tabIndex={0}
           ></div>
+
           <div className="relative h-[90vh] w-[90vw] rounded-sm bg-white p-3 shadow-lg">
             <span className="absolute text-[15px] font-semibold">Graph</span>
             <button
               type="button"
               onClick={handleCloseFullscreen}
               className="absolute top-3 right-3 rounded-sm text-sm text-neutral-700"
+              aria-label="Close fullscreen"
+              title="Close"
             >
               <X size={18} />
             </button>
+
             <div className="mt-7 h-[calc(100%-30px)] w-full overflow-auto rounded-sm border border-neutral-200 bg-neutral-50 p-2">
               <div className="h-full w-full">
                 <RenderGraphSvg

@@ -1,48 +1,35 @@
-// app/layout.tsx
 import type { Metadata } from "next";
-import "./globals.css";
 import Link from "next/link";
+
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "crv.",
   description:
-    "crv는 React 컴포넌트의 렌더링 흐름을 시각화하여 useRef, useState, 전역 상태, JSX 구조 등을 한 눈에 파악할 수 있게 해주는 웹 도구입니다.",
+    "crv is a code-based visualization tool that helps developers understand React rendering behavior, including useState, useRef, global state, and JSX structure, at a glance.",
   metadataBase: new URL("https://react-crv.vercel.app"),
   keywords: [
     "React",
-    "Code-based",
     "Rendering",
     "Visualization",
-    "Re-render",
-    "crv",
-    "CRV",
     "React performance",
     "React optimization",
+    "Re-render",
+    "Component rendering flow",
+    "crv",
   ],
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
-      {
-        url: "/favicon-48x48.png",
-        type: "image/png",
-        sizes: "48x48",
-      },
-      {
-        url: "/favicon-32x32.png",
-        type: "image/png",
-        sizes: "32x32",
-      },
-      {
-        url: "/favicon-16x16.png",
-        type: "image/png",
-        sizes: "16x16",
-      },
+      { url: "/favicon-48x48.png", type: "image/png", sizes: "48x48" },
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
     ],
   },
   openGraph: {
-    title: "crv. React Code-based Rendering Visualization Tool.",
+    title: "crv. – React Code-based Rendering Visualization Tool",
     description:
-      "React 렌더링 흐름과 JSX 구조를 SVG 그래프로 분석하는 시각화 도구 crv.",
+      "Visualize React rendering flows and JSX structures as an interactive SVG graph. Understand re-renders, state dependencies, and effects instantly.",
     url: "https://react-crv.vercel.app",
     siteName: "crv",
     type: "website",
@@ -56,16 +43,16 @@ interface RootLayoutProps {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="ko">
+    <html lang="en">
       <body className="min-h-screen bg-neutral-100 text-neutral-900 antialiased">
         <main className="flex h-screen flex-col">
-          <header className="border-b border-neutral-200 bg-white">
+          <header className="border-b border-neutral-200 bg-neutral-800">
             <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-4">
               <Link href="/" className="flex items-baseline gap-2">
-                <span className="text-[20px] font-semibold tracking-tight">
+                <span className="text-[21px] font-semibold tracking-tight text-white">
                   crv.
                 </span>
-                <span className="text-[15px] text-neutral-500">
+                <span className="text-[15px] text-white/70">
                   React Code-based Rendering Visualization Tool
                 </span>
               </Link>
